@@ -2,7 +2,7 @@
 
 Paste a course link from [hazwoper-osha.com](https://hazwoper-osha.com/online-courses), pick a branding style, and Claude builds a conversion-focused landing page for it. Preview it on desktop, tablet and mobile, ask Claude for changes, then **download it as a ZIP** (`index.html` + `assets/`) ready to upload to any web host.
 
-It's a static site with no backend, so it runs on **GitHub Pages**. Your API keys stay in your browser.
+It's a static site with no backend, so it runs on **GitHub Pages**. It sits behind a sign-in screen, and your API keys stay in your browser.
 
 ## How it works
 
@@ -30,11 +30,26 @@ It's a static site with no backend, so it runs on **GitHub Pages**. Your API key
 
 The repo includes a workflow (`.github/workflows/deploy.yml`) that builds the site and publishes it.
 
-1. On GitHub, open **Settings → Pages**. Under **Build and deployment → Source**, choose **GitHub Actions**.
-2. Push to `main`, or open the **Actions** tab, select **Deploy to GitHub Pages** and click **Run workflow**.
-3. The site will be at `https://<owner>.github.io/<repo>/`. For this repo that's `https://lj-web-management.github.io/landingpage-generator/`.
+1. **Turn on Pages:** open **Settings → Pages**. Under **Build and deployment → Source**, choose **GitHub Actions**.
+2. **Set the login:** open **Settings → Secrets and variables → Actions → New repository secret** and add two secrets:
+   - `LOGIN_EMAIL`: the email people sign in with.
+   - `LOGIN_PASSWORD`: the password, at least 10 characters.
+3. **Default branch:** in **Settings → General → Default branch**, choose `main`. GitHub only lets the default branch deploy to Pages.
+4. **Deploy:** push to `main`, or open the **Actions** tab, select **Deploy to GitHub Pages** and click **Run workflow**.
+5. The site will be at `https://<owner>.github.io/<repo>/`. For this repo that's `https://lj-web-management.github.io/landingpage-generator/`.
 
-> GitHub's `github-pages` environment only lets the repository's default branch deploy by default, so merge into the default branch (normally `main`) before deploying.
+### Sign-in
+
+Every visitor sees a sign-in screen before the app loads. The deploy workflow reads `LOGIN_EMAIL` / `LOGIN_PASSWORD` from the repository secrets and `scripts/hash-credentials.mjs` turns them into a random salt plus a slow PBKDF2-SHA256 hash (600,000 rounds). Only that hash is published. The plaintext password never appears in the repo or on the site.
+
+- **Change the password:** update the `LOGIN_PASSWORD` secret and re-run the workflow. Everyone is signed out.
+- **Missing secrets:** the deploy fails, so the site is never published without the gate.
+- **Limits:** GitHub Pages has no server, so the check runs in the browser. It keeps the tool private from casual visitors, but someone determined could try to guess the password offline against the published hash, and the source code is public in this repo. Use a long password that you don't use anywhere else. For server-side, per-user sign-in, put the site behind something like Cloudflare Access on a custom domain.
+- **Local testing:** `npm run dev` skips the sign-in. To test it locally:
+  ```bash
+  LOGIN_EMAIL=you@example.com LOGIN_PASSWORD='a-long-test-password' npm run hash-login
+  ```
+  then `npm run build && npm run preview`.
 
 ## Using it
 
@@ -91,12 +106,18 @@ src/branding.ts       ChatGPT brand kit + GPT Image generation
 src/assets.ts         Image assets (sizes, downscaling for Claude vision)
 src/export.ts         Preview HTML and ZIP export
 src/settings.ts       Settings and API-key storage
+src/auth.ts           Sign-in gate (PBKDF2 check, sessions)
+scripts/hash-credentials.mjs  Builds the login hash from LOGIN_EMAIL / LOGIN_PASSWORD
 ```
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
+| Deploy fails at "Get Pages site" | Turn on Pages: Settings → Pages → Source: GitHub Actions. |
+| Deploy fails at "Configure login" | Add the `LOGIN_EMAIL` and `LOGIN_PASSWORD` repository secrets. |
+| Deploy fails with "not allowed to deploy to github-pages" | Make `main` the default branch (Settings → General). |
+| "Sign-in isn't configured" on the site | The site was built without the login secrets. Add them and re-run the workflow. |
 | "Couldn't load the course page" | Use **Can't fetch the page? Paste its content instead**. If your organization restricts Claude's web tools, enable web fetch in the Claude Console. |
 | Claude 401 / OpenAI 401 | Re-check the API key in step 1. |
 | OpenAI 403 on images | Your OpenAI organization may need verification for GPT Image models. Or switch to Claude styles or Upload. |

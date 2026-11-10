@@ -59,6 +59,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   background: var(--panel);
   border-bottom: 1px solid var(--border);
 }
+.app-header #sign-out { margin-left: auto; }
 .app-brand { display: flex; align-items: center; gap: 12px; }
 .app-logo {
   display: grid;
@@ -150,7 +151,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .field > span:first-child { font-size: 0.85rem; font-weight: 600; }
 .field em { font-style: normal; font-weight: 400; color: var(--muted); }
-input[type="text"], input[type="url"], input[type="password"], input:not([type]), select, textarea {
+input[type="text"], input[type="url"], input[type="email"], input[type="password"], input:not([type]), select, textarea {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -301,5 +302,23 @@ body.stage-full .panel, body.stage-full .app-header { visibility: hidden; }
   max-width: calc(100vw - 32px);
 }
 .toast.error { background: var(--danger); }
+
+/* ---------- Login ---------- */
+.login-screen { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.login-card h1 { margin: 0; font-size: 1.2rem; }
+#login-fields { display: flex; flex-direction: column; gap: 12px; }
+.login-error { margin: 0; font-size: 0.86rem; color: var(--danger); }
 
 [hidden] { display: none !important; }

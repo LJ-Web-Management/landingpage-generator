@@ -36,6 +36,7 @@ import {
 import { imageForClaude, makeAsset, type Asset } from "./assets";
 import { buildPreviewHtml, exportZip } from "./export";
 import { forgetKeys, loadSettings, saveSettings, type Settings } from "./settings";
+import { authMode, endSession, hasSession, startSession, verifyCredentials } from "./auth";
 
 // ---------------------------------------------------------------------------
 // DOM helpers
@@ -912,4 +913,70 @@ function init(): void {
   syncButtons();
 }
 
-init();
+// ---------------------------------------------------------------------------
+// Login gate
+// ---------------------------------------------------------------------------
+
+function showApp(): void {
+  $("login-screen").hidden = true;
+  $("app-root").hidden = false;
+  const signOut = $<HTMLButtonElement>("sign-out");
+  signOut.hidden = authMode() !== "enforced";
+  signOut.onclick = () => {
+    if (state.html && !confirm("Sign out? Your current page will be lost unless you've downloaded it.")) return;
+    endSession();
+    state.html = "";
+    location.reload();
+  };
+  init();
+}
+
+function showLogin(): void {
+  $("app-root").hidden = true;
+  $("login-screen").hidden = false;
+  const form = $<HTMLFormElement>("login-form");
+  const email = $<HTMLInputElement>("login-email");
+  const password = $<HTMLInputElement>("login-password");
+  const remember = $<HTMLInputElement>("login-remember");
+  const error = $("login-error");
+  const submit = $<HTMLButtonElement>("login-submit");
+
+  if (authMode() === "not-configured") {
+    $("login-intro").textContent =
+      "Sign-in isn't configured for this deployment. Add the LOGIN_EMAIL and LOGIN_PASSWORD repository secrets and redeploy.";
+    $("login-fields").hidden = true;
+    return;
+  }
+
+  let failures = 0;
+  email.focus();
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    submit.disabled = true;
+    submit.textContent = "Checking…";
+    error.hidden = true;
+    try {
+      // Slow down repeated guessing a little more after each failure.
+      if (failures > 2) await new Promise((r) => setTimeout(r, Math.min(failures * 1000, 10_000)));
+      if (await verifyCredentials(email.value, password.value)) {
+        startSession(remember.checked);
+        password.value = "";
+        showApp();
+        return;
+      }
+      failures++;
+      error.textContent = "Incorrect email or password.";
+      error.hidden = false;
+      password.select();
+    } catch {
+      error.textContent = "Sign-in failed in this browser. Try an up-to-date Chrome, Edge, Firefox or Safari.";
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Sign in";
+    }
+  });
+}
+
+if (hasSession()) showApp();
+else showLogin();
