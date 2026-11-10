@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Course Landing Page Generator</title>
+    <meta
+      name="description"
+      content="Paste a HAZWOPER OSHA course link and get a ready-to-publish landing page built by Claude, exported as a ZIP."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f5b301'/%3E%3Cpath d='M18 44V20h8l6 12 6-12h8v24h-7V32l-7 13-7-13v12z' fill='%23111'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="app-brand">
+        <span class="app-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 19h16M6 15l4-8 4 6 2-3 3 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <div>
+          <h1>Course Landing Page Generator</h1>
+          <p>Paste a course link, pick a branding style, and Claude builds the landing page.</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="panel" aria-label="Generator controls">
+        <!-- 1. Settings -->
+        <section class="card">
+          <details id="settings-details" class="collapsible">
+            <summary>
+              <span class="step-num">1</span>
+              <span class="card-title">API keys &amp; models</span>
+              <span id="key-status" class="pill">No Claude key</span>
+            </summary>
+            <div class="card-body">
+              <label class="field">
+                <span>Claude API key <em>(required)</em></span>
+                <span class="input-row">
+                  <input id="claude-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-..." />
+                  <button type="button" class="btn ghost small" data-reveal="claude-key">Show</button>
+                </span>
+              </label>
+              <div class="grid-2">
+                <label class="field">
+                  <span>Claude model</span>
+                  <select id="model"></select>
+                </label>
+                <label class="field">
+                  <span>Effort</span>
+                  <select id="effort">
+                    <option value="low">Low (fastest)</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High (recommended)</option>
+                    <option value="xhigh">Extra high</option>
+                    <option value="max">Max (slowest)</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="field">
+                <span>OpenAI API key <em>(only for ChatGPT branding)</em></span>
+                <span class="input-row">
+                  <input id="openai-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-..." />
+                  <button type="button" class="btn ghost small" data-reveal="openai-key">Show</button>
+                </span>
+              </label>
+              <div class="grid-2">
+                <label class="field">
+                  <span>ChatGPT model</span>
+                  <input id="openai-text-model" list="openai-text-models" spellcheck="false" />
+                  <datalist id="openai-text-models">
+                    <option value="gpt-5.5"></option>
+                    <option value="gpt-5.4"></option>
+                    <option value="gpt-5.4-mini"></option>
+                  </datalist>
+                </label>
+                <label class="field">
+                  <span>Image model</span>
+                  <input id="openai-image-model" list="openai-image-models" spellcheck="false" />
+                  <datalist id="openai-image-models">
+                    <option value="gpt-image-2"></option>
+                    <option value="gpt-image-1.5"></option>
+                    <option value="gpt-image-1"></option>
+                    <option value="gpt-image-1-mini"></option>
+                  </datalist>
+                </label>
+              </div>
+              <div class="grid-2">
+                <label class="field">
+                  <span>Image quality</span>
+                  <select id="image-quality">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="check">
+                <input id="remember-keys" type="checkbox" />
+                <span>Remember API keys on this device</span>
+              </label>
+              <p class="note">
+                Keys stay in your browser and are sent only to <code>api.anthropic.com</code> and
+                <code>api.openai.com</code>. Unless “remember” is checked they're forgotten when you close this tab.
+                <button type="button" id="forget-keys" class="link">Forget saved keys</button>
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 2. Course -->
+        <section class="card">
+          <h2><span class="step-num">2</span><span class="card-title">Course</span></h2>
+          <div class="card-body">
+            <label class="field">
+              <span>Course page URL</span>
+              <span class="input-row">
+                <input
+                  id="course-url"
+                  type="url"
+                  inputmode="url"
+                  spellcheck="false"
+                  placeholder="https://hazwoper-osha.com/online-courses/osha-lockout-tagout-loto-training"
+                />
+                <button type="button" id="analyze-btn" class="btn secondary">Analyze</button>
+              </span>
+            </label>
+            <p id="url-hint" class="note" hidden></p>
+
+            <div id="facts-card" class="facts" hidden>
+              <div id="facts-summary"></div>
+              <details class="sub">
+                <summary>Edit course details (JSON)</summary>
+                <textarea id="facts-json" rows="14" spellcheck="false"></textarea>
+                <div class="row-end">
+                  <button type="button" id="facts-save" class="btn secondary small">Save details</button>
+                </div>
+              </details>
+            </div>
+
+            <details id="manual-details" class="sub">
+              <summary>Can't fetch the page? Paste its content instead</summary>
+              <textarea
+                id="manual-text"
+                rows="8"
+                placeholder="Open the course page, select all (Ctrl/Cmd+A), copy, and paste here."
+              ></textarea>
+              <div class="row-end">
+                <button type="button" id="manual-analyze" class="btn secondary small">Analyze pasted text</button>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <!-- 3. Branding -->
+        <section class="card">
+          <h2><span class="step-num">3</span><span class="card-title">Branding</span></h2>
+          <div class="card-body">
+            <div class="mode-grid" role="radiogroup" aria-label="Branding source">
+              <label class="mode">
+                <input type="radio" name="brand-mode" value="chatgpt" />
+                <span class="mode-box">
+                  <strong>ChatGPT</strong>
+                  <small>Brand kit + AI-generated images</small>
+                </span>
+              </label>
+              <label class="mode">
+                <input type="radio" name="brand-mode" value="claude" checked />
+                <span class="mode-box">
+                  <strong>Claude styles</strong>
+                  <small>Typography, color &amp; CSS, no images</small>
+                </span>
+              </label>
+              <label class="mode">
+                <input type="radio" name="brand-mode" value="upload" />
+                <span class="mode-box">
+                  <strong>Upload</strong>
+                  <small>Your own logo &amp; images</small>
+                </span>
+              </label>
+            </div>
+
+            <div id="mode-chatgpt" class="mode-panel" hidden>
+              <p class="note">ChatGPT designs a palette, fonts and voice, then the image model creates these images:</p>
+              <div class="checks">
+                <label class="check"><input type="checkbox" name="img-slot" value="hero" checked /> <span>Hero image</span></label>
+                <label class="check"><input type="checkbox" name="img-slot" value="badge" checked /> <span>Course badge</span></label>
+                <label class="check"><input type="checkbox" name="img-slot" value="feature_1" checked /> <span>Feature image 1</span></label>
+                <label class="check"><input type="checkbox" name="img-slot" value="feature_2" /> <span>Feature image 2</span></label>
+              </div>
+              <p class="note">Results are reused on the next run until you discard them.
+                <button type="button" id="chatgpt-reset" class="link">Discard brand kit &amp; images</button>
+              </p>
+            </div>
+
+            <div id="mode-upload" class="mode-panel" hidden>
+              <div class="grid-2">
+                <label class="field">
+                  <span>Logo</span>
+                  <input id="upload-logo" type="file" accept="image/*" />
+                </label>
+                <label class="field">
+                  <span>Hero image</span>
+                  <input id="upload-hero" type="file" accept="image/*" />
+                </label>
+              </div>
+              <label class="field">
+                <span>Other images <em>(optional, multiple)</em></span>
+                <input id="upload-others" type="file" accept="image/*" multiple />
+              </label>
+              <div class="grid-2">
+                <div class="field">
+                  <span>Brand colors <em>(optional)</em></span>
+                  <div class="color-row">
+                    <label class="check"><input id="color-primary-on" type="checkbox" /> <input id="color-primary" type="color" value="#0b3d91" aria-label="Primary color" /> <span>Primary</span></label>
+                    <label class="check"><input id="color-accent-on" type="checkbox" /> <input id="color-accent" type="color" value="#ffcd05" aria-label="Accent color" /> <span>Accent</span></label>
+                  </div>
+                </div>
+                <label class="field">
+                  <span>Fonts <em>(optional)</em></span>
+                  <input id="upload-fonts" placeholder="e.g. Montserrat headings, Inter body" />
+                </label>
+              </div>
+              <p class="note">Claude looks at your uploads to match the palette when no colors are set.</p>
+            </div>
+
+            <div id="asset-gallery" class="gallery" hidden></div>
+
+            <div class="grid-2">
+              <label class="field">
+                <span>Style direction</span>
+                <select id="style-preset"></select>
+              </label>
+              <label class="field">
+                <span>Brand name on the page</span>
+                <input id="brand-name" placeholder="From the course page" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Brand / style notes <em>(optional)</em></span>
+              <textarea id="brand-notes" rows="2" placeholder="e.g. Rugged and serious, aimed at construction site supervisors in Texas"></textarea>
+            </label>
+            <label class="check">
+              <input id="use-site-images" type="checkbox" />
+              <span>Also use the course image &amp; logo from the course page (linked from their site)</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 4. Page options -->
+        <section class="card">
+          <h2><span class="step-num">4</span><span class="card-title">Page options</span></h2>
+          <div class="card-body">
+            <div class="grid-2">
+              <label class="field">
+                <span>Enroll button link</span>
+                <input id="cta-url" type="url" spellcheck="false" placeholder="Defaults to the course page" />
+              </label>
+              <label class="field">
+                <span>Button text</span>
+                <input id="cta-text" placeholder="e.g. Enroll Now" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Extra instructions for Claude <em>(optional)</em></span>
+              <textarea
+                id="extra-instructions"
+                rows="3"
+                placeholder="e.g. Emphasize team/bulk pricing for employers. Include a section comparing online vs. classroom training."
+              ></textarea>
+            </label>
+          </div>
+        </section>
+
+        <!-- Generate -->
+        <section class="card actions">
+          <div class="action-row">
+            <button type="button" id="generate-btn" class="btn primary big">Generate landing page</button>
+            <button type="button" id="cancel-btn" class="btn ghost" hidden>Cancel</button>
+          </div>
+          <ol id="progress" class="progress" aria-live="polite"></ol>
+          <details id="thinking-details" class="sub" hidden>
+            <summary>Claude's thinking</summary>
+            <div id="thinking-box" class="thinking"></div>
+          </details>
+          <p id="usage-line" class="note usage" hidden></p>
+        </section>
+
+        <!-- 5. Refine -->
+        <section id="revise-card" class="card" hidden>
+          <h2><span class="step-num">5</span><span class="card-title">Refine with Claude</span></h2>
+          <div class="card-body">
+            <label class="field">
+              <span>What should change?</span>
+              <textarea id="revise-text" rows="3" placeholder="e.g. Make the hero headline shorter and move pricing above the syllabus."></textarea>
+            </label>
+            <div class="action-row">
+              <button type="button" id="revise-btn" class="btn secondary">Apply changes</button>
+              <button type="button" id="undo-btn" class="btn ghost" disabled>Undo</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="stage" aria-label="Preview">
+        <div class="toolbar">
+          <div class="seg" role="group" aria-label="Device">
+            <button type="button" data-device="desktop" class="active" title="Desktop">Desktop</button>
+            <button type="button" data-device="tablet" title="Tablet">Tablet</button>
+            <button type="button" data-device="mobile" title="Mobile">Mobile</button>
+          </div>
+          <div class="seg" role="group" aria-label="View">
+            <button type="button" data-view="preview" class="active">Preview</button>
+            <button type="button" data-view="code">Code</button>
+          </div>
+          <span id="html-size" class="muted"></span>
+          <span class="spacer"></span>
+          <button type="button" id="copy-btn" class="btn ghost small" disabled>Copy HTML</button>
+          <button type="button" id="fullscreen-btn" class="btn ghost small">Full screen</button>
+          <button type="button" id="download-btn" class="btn primary small" disabled>Download ZIP</button>
+        </div>
+        <div class="viewport">
+          <div id="empty-state" class="empty">
+            <div>
+              <h2>Your landing page will appear here</h2>
+              <ol>
+                <li>Add your Claude API key.</li>
+                <li>Paste a course link from hazwoper-osha.com.</li>
+                <li>Choose ChatGPT images, Claude styles, or your own uploads.</li>
+                <li>Click <strong>Generate</strong>, refine it, then download the ZIP.</li>
+              </ol>
+            </div>
+          </div>
+          <div id="frame-wrap" class="frame-wrap" data-device="desktop" hidden>
+            <iframe
+              id="preview"
+              title="Landing page preview"
+              sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+              referrerpolicy="no-referrer"
+            ></iframe>
+          </div>
+          <pre id="code-view" class="code" hidden></pre>
+        </div>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

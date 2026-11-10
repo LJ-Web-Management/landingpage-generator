@@ -1,0 +1,23 @@
+{
+  "name": "landingpage-generator",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Generate conversion-focused landing pages for HAZWOPER OSHA courses with Claude, then export them as a ZIP.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.7.0",
+    "jszip": "^3.10.2",
+    "openai": "^7.54.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.7"
+  }
+}
